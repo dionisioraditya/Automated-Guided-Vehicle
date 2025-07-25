@@ -1,59 +1,61 @@
+#include "MotorControl.h"
 #include "imu.h"
 #include "barrometer.h"
-#include "robotControl.h"
-#include "motor.h"
+#include <ArduinoJson.h>
 
-// Pin definitions
-#define ENCODERA1 3
-#define ENCODERA2 5
-#define ENCODERB1 2
-#define ENCODERB2 4
-#define ENABLEA 9
-#define ENABLEB 11
-#define IN1 12  // Motor Kanan
-#define IN2 13  // Motor Kanan
-#define IN3 7   // Motor Kiri
-#define IN4 8   // Motor Kiri
 
-// PID tuning parameters
-#define KP 1.2  // Proportional tuning
-#define KI 0.0  // Integral tuning
-#define KD 0.8  // Derivative tuning
-
-// Create objects
+MotorControl motor(10.0, 10.0, 'p', 'p');
 Imu imu;
-Barrometer bmp;
-Motor rightMotor(ENABLEA, IN1, IN2, ENCODERA1, ENCODERA2, KP, KI, KD);
-Motor leftMotor(ENABLEB, IN3, IN4, ENCODERB1, ENCODERB2, KP, KI, KD);
-RobotControl agvControl(&rightMotor, &leftMotor, &imu, &bmp);
+Barrometer barrometer;
+JsonDocument doc;
 
 void setup() {
-  // Initialize components
-  Serial.begin(115200);
+  motor.setup();
   imu.init();
-  bmp.init();
-  rightMotor.init();
-  leftMotor.init();
-  agvControl.init();
-  
-  // Set up encoder interrupts
-  attachInterrupt(digitalPinToInterrupt(ENCODERA1), rightEncoderISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(ENCODERB1), leftEncoderISR, RISING);
-}
+  Serial.begin(115200);
+  barrometer.setup();
 
+}
 void loop() {
-  // Process serial commands (both legacy and JSON)
-  agvControl.processSerialCommand();
+  JsonDocument doc;
+  String input = Serial.readString();
+  deserializeJson(doc, input);
+  double right_vel = doc["right_velocity"];
+  double left_vel = doc["left_velocity"];
+  String right_dir = doc["right_direction"];
+  String left_dir = doc["left_direction"];
+
+  motor.run(right_vel, left_vel, right_dir[0], left_dir[0]);
+  // Serial.print(", Aglr Velocity Z: ");
+  // Serial.print(imu.angularVelocityZaxis());
+  // Serial.print(", Euler Z: ");
+  // Serial.println(imu.eulerAngleZ());
+  transfer();
+
+}
+void transfer() {
+  JsonDocument doc;
+  // Mengisi data ke dalam JSON
+  doc["imu"] = imu.angularVelocityZaxis();
+  doc["right_velocity"] = motor.getRightVelocity();
+  doc["left_velocity"] = motor.getLeftVelocity();
   
-  // Update motor control and sensors
-  agvControl.update();
-}
-
-// Interrupt handlers for encoders
-void rightEncoderISR() {
-  rightMotor.encoderCallback();
-}
-
-void leftEncoderISR() {
-  leftMotor.encoderCallback();
+  // Mengubah char menjadi String
+  doc["right_direction"] = String(motor.getRightDir());
+  doc["left_direction"] = String(motor.getLeftDir());
+  // Serialisasi JSON ke dalam char array
+  char output[256];
+  serializeJson(doc, output);
+  Serial.println(output);
+  //delay(100);
+  // Serial.print(imu.angularVelocityZaxis());
+  // Serial.print(", ");
+  // Serial.print(motor.getRightVelocity());
+  // Serial.print(", ");
+  // Serial.print(motor.getLeftVelocity());
+  // Serial.print(", ");
+  // Serial.print(motor.getRightDir());
+  // Serial.print(", ");
+  // Serial.print(motor.getLeftDir());
+  // Serial.println();
 }

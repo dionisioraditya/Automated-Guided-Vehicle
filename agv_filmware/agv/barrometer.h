@@ -18,9 +18,27 @@ public:
     Barrometer() : bmp(&Wire, BMP::eSdoLow) {}
     
     // Initialize the barometer
-    bool init() {
+    void printLastOperateStatus(BMP::eStatus_t eStatus)
+        {
+        switch(eStatus) {
+        case BMP::eStatusOK:    Serial.println("everything ok"); break;
+        case BMP::eStatusErr:   Serial.println("unknow error"); break;
+        case BMP::eStatusErrDeviceNotDetected:    Serial.println("device not detected"); break;
+        case BMP::eStatusErrParameter:    Serial.println("parameter error"); break;
+        default: Serial.println("unknow status"); break;
+        }
+    }
+    void setup() {
+        Serial.begin(115200);
         bmp.reset();
-        return (bmp.begin() == BMP::eStatusOK);
+        Serial.println("bmp read data test");
+        while(bmp.begin() != BMP::eStatusOK) {
+            Serial.println("bmp begin faild");
+            printLastOperateStatus(bmp.lastOperateStatus);
+            delay(2000);
+        }
+        Serial.println("bmp begin success");
+        delay(100);
     }
     
     // Get temperature in Celsius
