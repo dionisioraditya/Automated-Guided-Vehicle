@@ -7,8 +7,12 @@
 MotorControl motor(10.0, 10.0, 'p', 'p');
 Imu imu;
 Barrometer barrometer;
-JsonDocument doc;
-
+JsonDocument docRead;
+JsonDocument docWrite;
+double right_vel = 0;
+double left_vel = 0;
+String right_dir = "p";
+String left_dir = "p";
 void setup() {
   motor.setup();
   imu.init();
@@ -17,13 +21,15 @@ void setup() {
 
 }
 void loop() {
-  JsonDocument doc;
-  String input = Serial.readString();
-  deserializeJson(doc, input);
-  double right_vel = doc["right_velocity"];
-  double left_vel = doc["left_velocity"];
-  String right_dir = doc["right_direction"];
-  String left_dir = doc["left_direction"];
+  if(Serial.available()>0) {
+    String input = Serial.readString();
+    deserializeJson(docRead, input);
+    right_vel = docRead["right_velocity"];
+    left_vel = docRead["left_velocity"];
+    String right_dir = docRead["right_direction"];
+    String left_dir = docRead["left_direction"];
+  }
+  
 
   motor.run(right_vel, left_vel, right_dir[0], left_dir[0]);
   // Serial.print(", Aglr Velocity Z: ");
@@ -31,21 +37,20 @@ void loop() {
   // Serial.print(", Euler Z: ");
   // Serial.println(imu.eulerAngleZ());
   transfer();
-
+  //delay(100);
 }
 void transfer() {
-  JsonDocument doc;
   // Mengisi data ke dalam JSON
-  doc["imu"] = imu.angularVelocityZaxis();
-  doc["right_velocity"] = motor.getRightVelocity();
-  doc["left_velocity"] = motor.getLeftVelocity();
+  docWrite["imu"] = imu.angularVelocityZaxis();
+  docWrite["right_velocity"] = motor.getRightVelocity();
+  docWrite["left_velocity"] = motor.getLeftVelocity();
   
   // Mengubah char menjadi String
-  doc["right_direction"] = String(motor.getRightDir());
-  doc["left_direction"] = String(motor.getLeftDir());
+  docWrite["right_direction"] = String(motor.getRightDir());
+  docWrite["left_direction"] = String(motor.getLeftDir());
   // Serialisasi JSON ke dalam char array
   char output[256];
-  serializeJson(doc, output);
+  serializeJson(docWrite, output);
   Serial.println(output);
   //delay(100);
   // Serial.print(imu.angularVelocityZaxis());

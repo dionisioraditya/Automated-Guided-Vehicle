@@ -99,7 +99,7 @@ void MotorControl::run(double rightRadiantTarget, double leftRadiantTarget, char
     digitalWrite(L298N_in4, LOW);
   }
   analogWrite(L298N_enB, left_pwm_output);
-  delay(100);
+  //delay(100);
 }
 void MotorControl::rightEncoderCallbackStatic()
 {
